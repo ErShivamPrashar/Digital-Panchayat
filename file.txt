@@ -1,0 +1,182 @@
+
+/*
+    hre api available of 
+    register, login email-send, 
+    and upload file
+*/
+
+
+
+const express = require('express')
+const mongoose = require('mongoose')
+const multer = require('multer')
+const nodemailer = require('nodemailer')
+const User = require('./models/user')
+const connectDB = require("./db/db")
+
+const app = express()
+
+
+// middleware
+
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+connectDB()
+
+/*
+    registration api
+*/
+
+app.post("/api/register", async (req, res) => {
+    try {
+        const { name, email, password } = req.body
+        const info = await User.findOne({ email })
+        if (info) {
+            return res.status(201).json({
+                message: "Email Already Exists"
+            })
+        }
+        else {
+            const newUser = new User({ name, email, password })
+            await newUser.save()
+            res.status(200).json({
+                message: "Registration Sucessful",
+                status: "ok"
+            })
+        }
+    }
+    catch (error) {
+        console.log("server error", error)
+        return res.status(401).json({
+            message: "server error request failed"
+        })
+    }
+})
+
+
+/*
+    login api
+*/
+
+app.get("/api/login", async (req, res) => {
+    try {
+        const { email, password } = req.body
+        const info = await User.findOne({ email })
+        if (!info) {
+            return res.status(201).json({
+                message: "please signup now"
+            })
+        }
+        else {
+            if (info.password != password) {
+                return res.json({
+                    message: "email or password is invalid"
+                })
+            }
+
+            res.status(200).json({
+                message: "Login Sucessful",
+                status: "ok"
+            })
+        }
+    }
+    catch (error) {
+        console.log("server error", error)
+        res.status(401).json({
+            message: "server error request failed"
+        })
+    }
+})
+
+
+
+/*
+    email send api
+*/
+
+
+app.post("/api/mail-send", async (req, res) => {
+    try {
+        const { to, subject, html } = req.body
+        const transporter = nodemailer.createTransport({
+            service: "gmial",
+            auth: {
+                user: "codewithshivam24@gmail.com",
+                pass: ""
+            }
+        })
+
+        const mail = {
+            from: `"Shivam Singh" <codewithshivam24@gmail.com>`,
+            to: to,
+            subject: subject,
+            html: `<p>${html}</p>`
+        }
+
+        await transporter.sendMail(mail);
+        res.status(200).json({
+            message: "mail send sucessful",
+            status: "ok"
+        })
+    }
+    catch (error) {
+        res.status(401).json({
+            message: "server error Please Try again"
+        })
+    }
+})
+
+
+
+/*
+    file upload api
+*/
+
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, "uploads/"),
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + req.file.filename)
+    }
+})
+
+const upload = multer({ storage })
+
+
+app.post("/api/upload", upload.single("image"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(401).json({
+                message: "file not found"
+            })
+        }
+
+        console.log(req.file)
+        res.status(200).json({
+            data: req.file,
+            message: "mail send sucessful",
+            status: "ok"
+        })
+    }
+    catch (error) {
+        res.status(401).json({
+            message: "server error Please Try again"
+        })
+    }
+})
+
+
+
+app.listen(3000, () => {
+    console.log(`server run on http://localhost:3000`)
+})
+
+
+
+
+
+//
+
+
+
+
